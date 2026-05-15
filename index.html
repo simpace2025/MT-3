@@ -9,7 +9,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
-  <title>Mock Test Two</title>
+  <title>Mock Test Three</title>
 
   <style>
     * { box-sizing: border-box; }
@@ -271,19 +271,73 @@
       Chỉ cần đổi VERSION mỗi lần upload ảnh/audio mới:
       20260514_08 -> 20260514_09 -> 20260514_10
     */
-    const VERSION = "20260514_08";
+    const VERSION = "20260515_01";
 
     function withVersion(path){
-      return path + "?v=" + VERSION;
+      const separator = path.includes("?") ? "&" : "?";
+      return path + separator + "v=" + VERSION;
+    }
+
+    /*
+      Tự dò ảnh theo 4 kiểu đuôi file:
+      .jpg, .JPG, .png, .PNG
+
+      Cách dùng dễ nhất:
+      <img class="test-img" data-src="RW0" alt="RW0" />
+      Không cần ghi đuôi .jpg/.png trong data-src.
+
+      Nếu ảnh nằm trong thư mục, viết:
+      <img class="test-img" data-src="JPG1/RW0" alt="RW0" />
+    */
+    const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".png", ".PNG"];
+
+    function uniqueList(items){
+      return [...new Set(items.filter(Boolean))];
+    }
+
+    function imageCandidates(rawPath){
+      const path = (rawPath || "").trim();
+      if(!path) return [];
+
+      // Nếu đã ghi .jpg/.JPG/.png/.PNG thì vẫn thử file đó trước,
+      // sau đó tự thử các đuôi còn lại.
+      const match = path.match(/\.(jpg|png)$/i);
+      if(match){
+        const basePath = path.replace(/\.(jpg|png)$/i, "");
+        return uniqueList([
+          path,
+          ...IMAGE_EXTENSIONS.map(ext => basePath + ext)
+        ]);
+      }
+
+      // Nếu không ghi đuôi, tự thử đủ 4 định dạng.
+      return IMAGE_EXTENSIONS.map(ext => path + ext);
+    }
+
+    function loadImageWithFallback(img){
+      const rawPath = img.getAttribute("data-src");
+      const candidates = imageCandidates(rawPath);
+      let index = 0;
+
+      function tryNext(){
+        if(index >= candidates.length){
+          img.onerror = null;
+          console.warn("Không tìm thấy ảnh:", rawPath, "Đã thử:", candidates);
+          return;
+        }
+        img.src = withVersion(candidates[index]);
+        index++;
+      }
+
+      img.onerror = tryNext;
+      tryNext();
     }
 
     window.addEventListener("DOMContentLoaded", () => {
-      // Load logo + ảnh
-      document.querySelectorAll("img[data-src]").forEach(img => {
-        img.src = withVersion(img.getAttribute("data-src"));
-      });
+      // Load logo + ảnh, tự dò .jpg/.JPG/.png/.PNG
+      document.querySelectorAll("img[data-src]").forEach(loadImageWithFallback);
 
-      // Load audio
+      // Load audio giữ nguyên đường dẫn đang dùng
       document.querySelectorAll("source[data-src]").forEach(source => {
         source.src = withVersion(source.getAttribute("data-src"));
         const audio = source.closest("audio");
@@ -305,9 +359,9 @@
     <!-- BÊN TRÁI: CÂU HỎI -->
     <main class="left">
       <header class="brand-bar">
-        <img class="logo" data-src="logo.jpg" alt="SIMPace Logo" />
+        <img class="logo" data-src="logo" alt="SIMPace Logo" />
         <div class="title-block">
-          <h1>Mock Test Two</h1>
+          <h1>Mock Test Three</h1>
           <p>English Test Practice · Listening · Reading & Writing · Speaking</p>
         </div>
       </header>
@@ -333,7 +387,7 @@
         <!-- LISTENING part 1 -->
         <div class="part-card">
           <!-- L1 là title nên đặt trên cùng của Listening part 1 -->
-          <img class="test-img" data-src="JPG1/L0.jpg" alt="L1 title" />
+          <img class="test-img" data-src="L0" alt="L1 title" />
 
           <h3>Listening part 1</h3>
           <p class="note">Audio: part1.MP3</p>
@@ -343,10 +397,10 @@
           </audio>
 
           <!-- L2 bị trùng L3 nên không hiển thị -->
-          <!-- <img class="test-img" data-src="JPG1/L2.jpg" alt="L2" /> -->
+          <!-- <img class="test-img" data-src="L2" alt="L2" /> -->
 
-          <img class="test-img" data-src="JPG1/L1.jpg" alt="L1" />
-          <img class="test-img" data-src="JPG1/L1-1.jpg" alt="L1-1" />
+          <img class="test-img" data-src="L1" alt="L1" />
+          <img class="test-img" data-src="L1-1" alt="L1-1" />
         </div>
 
         <!-- LISTENING part 2 -->
@@ -357,7 +411,7 @@
             <source data-src="AUDIO/part2.MP3" type="audio/mpeg" />
             Trình duyệt của bạn không hỗ trợ audio.
           </audio>
-          <img class="test-img" data-src="JPG1/L2.jpg" alt="L2" />
+          <img class="test-img" data-src="L2" alt="L2" />
         </div>
 
         <!-- LISTENING part 3 -->
@@ -368,7 +422,8 @@
             <source data-src="AUDIO/part3.MP3" type="audio/mpeg" />
             Trình duyệt của bạn không hỗ trợ audio.
           </audio>
-          <img class="test-img" data-src="JPG1/L3.jpg" alt="L3" />
+          <img class="test-img" data-src="L3" alt="L3" />
+	<img class="test-img" data-src="L3-1" alt="L3-1" />
           
         </div>
 
@@ -380,7 +435,9 @@
             <source data-src="AUDIO/part4.MP3" type="audio/mpeg" />
             Trình duyệt của bạn không hỗ trợ audio.
           </audio>
-          <img class="test-img" data-src="JPG1/L4.jpg" alt="L4" />
+          <img class="test-img" data-src="L4" alt="L4" />
+	 <img class="test-img" data-src="L4-1" alt="L4-1" />
+		
          
         </div>
 
@@ -392,7 +449,7 @@
             <source data-src="AUDIO/part5.MP3" type="audio/mpeg" />
             Trình duyệt của bạn không hỗ trợ audio.
           </audio>
-          <img class="test-img" data-src="JPG1/L5.jpg" alt="L5" />
+          <img class="test-img" data-src="L5" alt="L5" />
          
         </div>
       </section>
@@ -412,14 +469,16 @@
 
         <div class="part-card">
           <h3>Reading and Writing part 1</h3>
-	 <img class="test-img" data-src="JPG1/RW0.jpg" alt="RW0" />
+	 <img class="test-img" data-src="RW0" alt="RW0" />
 
-          <img class="test-img" data-src="JPG1/RW1.jpg" alt="RW1" />
-<img class="test-img" data-src="JPG1/RW1-1.jpg" alt="RW1-1" />
-          <img class="test-img" data-src="JPG1/RW2.jpg" alt="RW2" />
-          <img class="test-img" data-src="JPG1/RW3.jpg" alt="RW3" />
-          <img class="test-img" data-src="JPG1/RW4.jpg" alt="RW4" />
-          <img class="test-img" data-src="JPG1/RW5.jpg" alt="RW5" />
+          <img class="test-img" data-src="RW1" alt="RW1" />
+	<img class="test-img" data-src="RW1-1" alt="RW1-1" />
+          <img class="test-img" data-src="RW2" alt="RW2" />
+	<img class="test-img" data-src="RW2-1" alt="RW2-1" />
+          <img class="test-img" data-src="RW3" alt="RW3" />
+	<img class="test-img" data-src="RW3-1" alt="RW3-1" />
+          <img class="test-img" data-src="RW4" alt="RW4" />
+          <img class="test-img" data-src="RW5" alt="RW5" />
          
           
         </div>
@@ -438,8 +497,8 @@
         <div class="part-card">
           <h3>Reading and Writing part 2</h3>
 
-          <img class="test-img" data-src="JPG1/RW6.jpg" alt="RW6" />
-          <img class="test-img" data-src="JPG1/RW7.jpg" alt="RW7" />
+          <img class="test-img" data-src="RW6" alt="RW6" />
+          <img class="test-img" data-src="RW7" alt="RW7" />
         </div>
       </section>
 
@@ -455,11 +514,11 @@
 
         <div class="part-card">
           <h3>Speaking Questions</h3>
-	 <img class="test-img" data-src="JPG1/S0.jpg" alt="S0" />
-          <img class="test-img" data-src="JPG1/S1.jpg" alt="S1" />
-	  <img class="test-img" data-src="JPG1/S1-1.jpg" alt="S1-1" />
-          <img class="test-img" data-src="JPG1/S2.jpg" alt="S2" />
- <img class="test-img" data-src="JPG1/S2-1.jpg" alt="S2-1" />
+	 <img class="test-img" data-src="S0" alt="S0" />
+          <img class="test-img" data-src="S1" alt="S1" />
+	  <img class="test-img" data-src="S1-1" alt="S1-1" />
+          <img class="test-img" data-src="S2" alt="S2" />
+ <img class="test-img" data-src="S3" alt="S3" />
           
         </div>
       </section>
@@ -469,11 +528,11 @@
     <aside class="right">
       <div class="form-title">✅ Trả lời</div>
       <div class="iframe-wrap">
-	       <iframe
-			  src="https://docs.google.com/forms/d/e/1FAIpQLScKOtWQD4VLXnbSwjDnHf835oY9Mm8qZxfZSKEkUydWdo9vJg/viewform?embedded=true"
-			  allowfullscreen
-			  loading="lazy">
-		</iframe>
+        <iframe
+          src="https://docs.google.com/forms/d/1TIZmKZdvqEiJbOlPNFFMBG7mVjpB6sE4pg2bLT9VDSw/viewform?embedded=true"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
       </div>
     </aside>
   </div>
