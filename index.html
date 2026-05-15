@@ -271,7 +271,7 @@
       Chỉ cần đổi VERSION mỗi lần upload ảnh/audio mới:
       20260514_08 -> 20260514_09 -> 20260514_10
     */
-    const VERSION = "20260515_01";
+    const VERSION = "20260515_02";
 
     function withVersion(path){
       const separator = path.includes("?") ? "&" : "?";
@@ -291,35 +291,67 @@
     */
     const IMAGE_EXTENSIONS = [".jpg", ".JPG", ".png", ".PNG"];
 
+    // Ảnh của bài hiện đang nằm trong thư mục JPG1 trên GitHub
+    // Code sẽ thử cả 2 nơi:
+    // 1) RW0.jpg
+    // 2) JPG1/RW0.jpg
+    const IMAGE_FOLDERS = ["", "JPG1/"];
+
     function uniqueList(items){
       return [...new Set(items.filter(Boolean))];
+    }
+
+    function imageBaseCandidates(pathWithoutExtension){
+      const path = (pathWithoutExtension || "").trim();
+      if(!path) return [];
+
+      const isExternal = /^(https?:)?\/\//i.test(path);
+      const isRootPath = path.startsWith("/");
+      const alreadyHasFolder = path.includes("/");
+
+      let bases = [path];
+
+      // Nếu chỉ ghi tên file như RW0, L1, S1 thì tự thêm JPG1/ phía trước.
+      // Nếu đã ghi JPG1/RW0 hoặc link đầy đủ thì không thêm nữa.
+      if(!isExternal && !isRootPath && !alreadyHasFolder){
+        IMAGE_FOLDERS.forEach(folder => bases.push(folder + path));
+      }
+
+      // Dò thêm dạng Windows tự đổi tên file khi tải về: RW0(1).jpg hoặc RW0 (1).jpg
+      const variants = [];
+      bases.forEach(base => {
+        variants.push(base);
+        variants.push(base + "(1)");
+        variants.push(base + " (1)");
+      });
+
+      return uniqueList(variants);
     }
 
     function imageCandidates(rawPath){
       const path = (rawPath || "").trim();
       if(!path) return [];
 
-      // GitHub Pages phân biệt chữ hoa/thường và tên file phải khớp 100%.
-      // Hàm này thử các trường hợp phổ biến:
-      // RW0.jpg, RW0.JPG, RW0.png, RW0.PNG
-      // RW0(1).jpg, RW0(1).JPG, RW0(1).png, RW0(1).PNG
-      // RW0 (1).jpg, RW0 (1).JPG, RW0 (1).png, RW0 (1).PNG
       const match = path.match(/\.(jpg|png)$/i);
-      const basePath = match ? path.replace(/\.(jpg|png)$/i, "") : path;
-      const suffixes = ["", "(1)", " (1)"];
-      const candidates = [];
 
+      // Nếu đã ghi đuôi .jpg/.png, vẫn thử đúng tên đó trước,
+      // sau đó thử thêm các đuôi và thư mục JPG1.
       if(match){
-        candidates.push(path); // thử đúng đường dẫn đã ghi trước
+        const basePath = path.replace(/\.(jpg|png)$/i, "");
+        return uniqueList([
+          path,
+          ...imageBaseCandidates(basePath).flatMap(base =>
+            IMAGE_EXTENSIONS.map(ext => base + ext)
+          )
+        ]);
       }
 
-      suffixes.forEach(suffix => {
-        IMAGE_EXTENSIONS.forEach(ext => {
-          candidates.push(basePath + suffix + ext);
-        });
-      });
-
-      return uniqueList(candidates);
+      // Nếu chưa ghi đuôi, tự thử đủ .jpg/.JPG/.png/.PNG và cả thư mục JPG1.
+      return uniqueList(
+        imageBaseCandidates(path).flatMap(base =>
+          IMAGE_EXTENSIONS.map(ext => base + ext)
+        )
+      );
     }
 
     function loadImageWithFallback(img){
@@ -395,7 +427,7 @@
         <!-- LISTENING part 1 -->
         <div class="part-card">
           <!-- L1 là title nên đặt trên cùng của Listening part 1 -->
-          <img class="test-img" data-src="L0" alt="L1 title" />
+          <img class="test-img" data-src="L0" alt="L0 title" />
 
           <h3>Listening part 1</h3>
           <p class="note">Audio: part1.MP3</p>
