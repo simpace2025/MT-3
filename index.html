@@ -299,19 +299,27 @@
       const path = (rawPath || "").trim();
       if(!path) return [];
 
-      // Nếu đã ghi .jpg/.JPG/.png/.PNG thì vẫn thử file đó trước,
-      // sau đó tự thử các đuôi còn lại.
+      // GitHub Pages phân biệt chữ hoa/thường và tên file phải khớp 100%.
+      // Hàm này thử các trường hợp phổ biến:
+      // RW0.jpg, RW0.JPG, RW0.png, RW0.PNG
+      // RW0(1).jpg, RW0(1).JPG, RW0(1).png, RW0(1).PNG
+      // RW0 (1).jpg, RW0 (1).JPG, RW0 (1).png, RW0 (1).PNG
       const match = path.match(/\.(jpg|png)$/i);
+      const basePath = match ? path.replace(/\.(jpg|png)$/i, "") : path;
+      const suffixes = ["", "(1)", " (1)"];
+      const candidates = [];
+
       if(match){
-        const basePath = path.replace(/\.(jpg|png)$/i, "");
-        return uniqueList([
-          path,
-          ...IMAGE_EXTENSIONS.map(ext => basePath + ext)
-        ]);
+        candidates.push(path); // thử đúng đường dẫn đã ghi trước
       }
 
-      // Nếu không ghi đuôi, tự thử đủ 4 định dạng.
-      return IMAGE_EXTENSIONS.map(ext => path + ext);
+      suffixes.forEach(suffix => {
+        IMAGE_EXTENSIONS.forEach(ext => {
+          candidates.push(basePath + suffix + ext);
+        });
+      });
+
+      return uniqueList(candidates);
     }
 
     function loadImageWithFallback(img){
